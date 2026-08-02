@@ -23,8 +23,8 @@ android {
         applicationId = "com.mikhmon.android"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 4
+        versionName = "1.0.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -49,7 +49,7 @@ android {
         debug {
             isDebuggable = true
             isMinifyEnabled = false
-            applicationIdSuffix = ".debug"
+            // Remove applicationIdSuffix so debug and release can update each other
             versionNameSuffix = "-DEBUG"
             signingConfig = signingConfigs.getByName("debug")
             
