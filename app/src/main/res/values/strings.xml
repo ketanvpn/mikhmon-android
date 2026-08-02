@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Mikhmon</string>
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_users">Users</string>
+    <string name="title_vouchers">Vouchers</string>
+    <string name="title_monitoring">Monitoring</string>
+    <string name="title_reports">Reports</string>
+    <string name="title_settings">Settings</string>
+    <string name="title_routers">Routers</string>
+</resources>
