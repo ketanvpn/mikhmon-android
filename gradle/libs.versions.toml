@@ -4,7 +4,8 @@ kotlin = "2.0.0"
 coreKtx = "1.13.1"
 lifecycleRuntimeKtx = "2.8.3"
 activityCompose = "1.9.0"
-composeBom = "2024.06.00"
+composeUi = "1.6.8"
+composeMaterial3 = "1.2.1"
 navigationCompose = "2.7.7"
 hilt = "2.51.1"
 hiltNavigationCompose = "1.2.0"
@@ -33,15 +34,14 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 
-# Compose
-androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
-androidx-ui = { group = "androidx.compose", name = "ui" }
-androidx-ui-graphics = { group = "androidx.compose", name = "ui-graphics" }
-androidx-ui-tooling = { group = "androidx.compose", name = "ui-tooling" }
-androidx-ui-tooling-preview = { group = "androidx.compose", name = "ui-tooling-preview" }
-androidx-ui-test-manifest = { group = "androidx.compose", name = "ui-test-manifest" }
-androidx-ui-test-junit4 = { group = "androidx.compose", name = "ui-test-junit4" }
-androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+# Compose (explicit versions without BOM)
+androidx-ui = { group = "androidx.compose", name = "ui", version.ref = "composeUi" }
+androidx-ui-graphics = { group = "androidx.compose", name = "ui-graphics", version.ref = "composeUi" }
+androidx-ui-tooling = { group = "androidx.compose", name = "ui-tooling", version.ref = "composeUi" }
+androidx-ui-tooling-preview = { group = "androidx.compose", name = "ui-tooling-preview", version.ref = "composeUi" }
+androidx-ui-test-manifest = { group = "androidx.compose", name = "ui-test-manifest", version.ref = "composeUi" }
+androidx-ui-test-junit4 = { group = "androidx.compose", name = "ui-test-junit4", version.ref = "composeUi" }
+androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "composeMaterial3" }
 androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
 
 # Navigation
