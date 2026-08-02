@@ -40,7 +40,7 @@ data class LogEntryEntity(
         return LogEntry(
             id = id,
             timestamp = kotlinx.datetime.Instant.fromEpochMilliseconds(timestamp)
-                .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()),
+                .toLocalDateTime(kotlinx.datetime.TimeZone.UTC),
             level = com.mikhmon.android.core.logging.LogLevel.valueOf(level),
             category = category,
             correlationId = correlationId,
@@ -85,7 +85,7 @@ class Converters {
     fun toLocalDateTime(value: Long?): LocalDateTime? {
         return value?.let {
             kotlinx.datetime.Instant.fromEpochMilliseconds(it)
-                .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
+                .toLocalDateTime(kotlinx.datetime.TimeZone.UTC)
         }
     }
 }

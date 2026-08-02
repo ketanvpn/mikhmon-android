@@ -168,7 +168,7 @@ class ProfileRepository @Inject constructor(
         
         return if (mode.isNotEmpty()) {
             ":local date [ /system clock get date ]; " +
-            ":local comment \"$date - $validity\"; " +
+            ":local comment \"\$date - $validity\"; " +
             "/ip hotspot user set comment=\$comment [find where name=\$user]; " +
             ":delay ${validity}; " +
             "/ip hotspot user $mode [find where name=\$user]"

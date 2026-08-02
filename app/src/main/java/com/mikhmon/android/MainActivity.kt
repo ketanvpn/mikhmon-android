@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     MikhmonNavGraph(
-                        startDestination = Screen.Login
+                        startDestination = Screen.Login.route
                     )
                 }
             }
