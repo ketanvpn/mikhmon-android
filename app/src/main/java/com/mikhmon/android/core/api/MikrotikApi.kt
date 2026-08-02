@@ -44,8 +44,6 @@ class MikrotikApi private constructor(
     private val _connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
     
-    private var isLegacyAuth = false
-    
     companion object {
         const val DEFAULT_PORT = 8728
         const val DEFAULT_SSL_PORT = 8729
@@ -136,51 +134,23 @@ class MikrotikApi private constructor(
     private suspend fun login(correlationId: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             Logger.debug(Logger.Category.API, "Attempting modern authentication", correlationId)
-            writeCommand("/login", mapOf("name" to username, "password" to password))
-            val modernResponse = readResponse()
-            if (modernResponse.none { it.containsKey("!trap") }) {
+            val loginProtocol = RouterOsLoginProtocol(
+                username = username,
+                password = password,
+                writeCommand = ::writeCommand,
+                readResponse = { readResponse() }
+            )
+            val result = loginProtocol.authenticate()
+            if (result.isSuccess) {
                 Logger.info(Logger.Category.AUTH, "Login successful", correlationId)
-                return@withContext Result.success(Unit)
-            }
-
-            // Legacy RouterOS requires a challenge-response retry after rejecting credentials.
-            isLegacyAuth = true
-            Logger.debug(Logger.Category.API, "Falling back to legacy authentication", correlationId)
-            writeCommand("/login")
-            val challengeResponse = readResponse()
-            val challenge = challengeResponse.firstNotNullOfOrNull { it["ret"] }
-                ?: return@withContext Result.failure(AuthenticationException(loginError(modernResponse)))
-            writeCommand("/login", mapOf("name" to username, "response" to "00${hashPassword(password, challenge)}"))
-            val legacyResponse = readResponse()
-            val error = legacyResponse.firstOrNull { it.containsKey("!trap") }
-            if (error != null) {
-                Result.failure(AuthenticationException(loginError(legacyResponse)))
             } else {
-                Logger.info(Logger.Category.AUTH, "Login successful", correlationId)
-                Result.success(Unit)
+                Logger.debug(Logger.Category.API, "Login rejected", correlationId)
             }
+            result
         } catch (e: Exception) {
             Logger.error(Logger.Category.AUTH, "Login error: ${e.message}", e, correlationId)
             Result.failure(e)
         }
-    }
-    
-    /**
-     * Hash password for legacy authentication
-     */
-    private fun hashPassword(password: String, challenge: String): String {
-        val md = MessageDigest.getInstance("MD5")
-        val challengeBytes = hexStringToByteArray(challenge)
-        
-        md.update(0.toByte())
-        md.update(password.toByteArray())
-        val hash = md.digest(challengeBytes)
-        
-        return bytesToHexString(hash)
-    }
-
-    private fun loginError(response: List<Map<String, String>>): String {
-        return response.firstNotNullOfOrNull { it["message"] } ?: "Authentication failed"
     }
 
     private fun createSocket(): Socket {
@@ -279,11 +249,7 @@ class MikrotikApi private constructor(
                     }
                 }
                 "!done" -> {
-                    // Command completed
-                    if (currentData.isNotEmpty()) {
-                        response.add(currentData.toMap())
-                    }
-                    break
+                    currentData["!done"] = "true"
                 }
                 "!trap", "!fatal" -> {
                     // Error
@@ -293,6 +259,9 @@ class MikrotikApi private constructor(
                     // Empty word - end of record
                     if (currentData.isNotEmpty()) {
                         response.add(currentData.toMap())
+                        if (currentData.containsKey("!done")) {
+                            break
+                        }
                         currentData.clear()
                     }
                 }
@@ -423,14 +392,55 @@ class MikrotikApi private constructor(
         scope.cancel()
     }
     
-    // Utility functions
-    
+}
+
+internal class RouterOsLoginProtocol(
+    private val username: String,
+    private val password: String,
+    private val writeCommand: (String, Map<String, String>) -> Unit,
+    private val readResponse: suspend () -> List<Map<String, String>>
+) {
+    suspend fun authenticate(): Result<Unit> {
+        writeCommand("/login", mapOf("name" to username, "password" to password))
+        val initialResponse = readResponse()
+        val initialError = initialResponse.firstOrNull { it.containsKey("!trap") }
+        if (initialError != null) {
+            return Result.failure(AuthenticationException(loginError(initialResponse)))
+        }
+
+        val challenge = initialResponse.firstNotNullOfOrNull { it["ret"] }
+            ?: return Result.success(Unit)
+
+        writeCommand(
+            "/login",
+            mapOf("name" to username, "response" to "00${hashPassword(password, challenge)}")
+        )
+        val legacyResponse = readResponse()
+        return if (legacyResponse.any { it.containsKey("!trap") }) {
+            Result.failure(AuthenticationException(loginError(legacyResponse)))
+        } else {
+            Result.success(Unit)
+        }
+    }
+
+    private fun hashPassword(password: String, challenge: String): String {
+        val digest = MessageDigest.getInstance("MD5")
+        digest.update(0.toByte())
+        digest.update(password.toByteArray(Charsets.UTF_8))
+        digest.update(hexStringToByteArray(challenge))
+        return bytesToHexString(digest.digest())
+    }
+
+    private fun loginError(response: List<Map<String, String>>): String {
+        return response.firstNotNullOfOrNull { it["message"] } ?: "Authentication failed"
+    }
+
     private fun hexStringToByteArray(hex: String): ByteArray {
         return ByteArray(hex.length / 2) {
             hex.substring(it * 2, it * 2 + 2).toInt(16).toByte()
         }
     }
-    
+
     private fun bytesToHexString(bytes: ByteArray): String {
         return bytes.joinToString("") { "%02x".format(it) }
     }
