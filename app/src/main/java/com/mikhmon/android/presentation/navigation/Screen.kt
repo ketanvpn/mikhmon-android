@@ -1,54 +1,24 @@
 package com.mikhmon.android.presentation.navigation
 
-import kotlinx.serialization.Serializable
-
 /**
  * Navigation screens/routes for Mikhmon Android
  */
-sealed interface Screen {
-    
-    @Serializable
-    object Login : Screen
-    
-    @Serializable
-    object Dashboard : Screen
-    
-    @Serializable
-    object Routers : Screen
-    
-    @Serializable
-    object AddRouter : Screen
-    
-    @Serializable
-    object Users : Screen
-    
-    @Serializable
-    data class UserDetail(val userId: String) : Screen
-    
-    @Serializable
-    object AddUser : Screen
-    
-    @Serializable
-    object Profiles : Screen
-    
-    @Serializable
-    object AddProfile : Screen
-    
-    @Serializable
-    object Vouchers : Screen
-    
-    @Serializable
-    object GenerateVoucher : Screen
-    
-    @Serializable
-    object Monitoring : Screen
-    
-    @Serializable
-    object Reports : Screen
-    
-    @Serializable
-    object Settings : Screen
-    
-    @Serializable
-    object Logs : Screen
+sealed class Screen(val route: String) {
+    object Login : Screen("login")
+    object Dashboard : Screen("dashboard")
+    object Routers : Screen("routers")
+    object AddRouter : Screen("add_router")
+    object Users : Screen("users")
+    object UserDetail : Screen("user_detail/{userId}") {
+        fun createRoute(userId: String) = "user_detail/$userId"
+    }
+    object AddUser : Screen("add_user")
+    object Profiles : Screen("profiles")
+    object AddProfile : Screen("add_profile")
+    object Vouchers : Screen("vouchers")
+    object GenerateVoucher : Screen("generate_voucher")
+    object Monitoring : Screen("monitoring")
+    object Reports : Screen("reports")
+    object Settings : Screen("settings")
+    object Logs : Screen("logs")
 }

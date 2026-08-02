@@ -17,81 +17,81 @@ import com.mikhmon.android.presentation.features.settings.SettingsScreen
 @Composable
 fun MikhmonNavGraph(
     navController: NavHostController = rememberNavController(),
-    startDestination: Screen = Screen.Login
+    startDestination: String = Screen.Login.route
 ) {
     NavHost(
         navController = navController,
         startDestination = startDestination
     ) {
         // Login
-        composable<Screen.Login> {
+        composable(route = Screen.Login.route) {
             LoginScreen(
                 onLoginSuccess = {
-                    navController.navigate(Screen.Dashboard) {
-                        popUpTo(Screen.Login) { inclusive = true }
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 }
             )
         }
         
         // Dashboard
-        composable<Screen.Dashboard> {
+        composable(route = Screen.Dashboard.route) {
             DashboardScreen(
-                onNavigateToUsers = { navController.navigate(Screen.Users) },
-                onNavigateToVouchers = { navController.navigate(Screen.Vouchers) },
-                onNavigateToMonitoring = { navController.navigate(Screen.Monitoring) },
-                onNavigateToReports = { navController.navigate(Screen.Reports) },
-                onNavigateToSettings = { navController.navigate(Screen.Settings) },
-                onNavigateToRouters = { navController.navigate(Screen.Routers) }
+                onNavigateToUsers = { navController.navigate(Screen.Users.route) },
+                onNavigateToVouchers = { navController.navigate(Screen.Vouchers.route) },
+                onNavigateToMonitoring = { navController.navigate(Screen.Monitoring.route) },
+                onNavigateToReports = { navController.navigate(Screen.Reports.route) },
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                onNavigateToRouters = { navController.navigate(Screen.Routers.route) }
             )
         }
         
         // Routers
-        composable<Screen.Routers> {
+        composable(route = Screen.Routers.route) {
             RouterListScreen(
                 onBack = { navController.popBackStack() },
-                onAddRouter = { navController.navigate(Screen.AddRouter) }
+                onAddRouter = { navController.navigate(Screen.AddRouter.route) }
             )
         }
         
         // Users
-        composable<Screen.Users> {
+        composable(route = Screen.Users.route) {
             UserListScreen(
                 onBack = { navController.popBackStack() },
                 onUserClick = { userId -> 
-                    navController.navigate(Screen.UserDetail(userId))
+                    navController.navigate(Screen.UserDetail.createRoute(userId))
                 },
-                onAddUser = { navController.navigate(Screen.AddUser) }
+                onAddUser = { navController.navigate(Screen.AddUser.route) }
             )
         }
         
         // Vouchers
-        composable<Screen.Vouchers> {
+        composable(route = Screen.Vouchers.route) {
             VoucherListScreen(
                 onBack = { navController.popBackStack() },
-                onGenerateVoucher = { navController.navigate(Screen.GenerateVoucher) }
+                onGenerateVoucher = { navController.navigate(Screen.GenerateVoucher.route) }
             )
         }
         
         // Monitoring
-        composable<Screen.Monitoring> {
+        composable(route = Screen.Monitoring.route) {
             MonitoringScreen(
                 onBack = { navController.popBackStack() }
             )
         }
         
         // Reports
-        composable<Screen.Reports> {
+        composable(route = Screen.Reports.route) {
             ReportScreen(
                 onBack = { navController.popBackStack() }
             )
         }
         
         // Settings
-        composable<Screen.Settings> {
+        composable(route = Screen.Settings.route) {
             SettingsScreen(
                 onBack = { navController.popBackStack() },
-                onViewLogs = { navController.navigate(Screen.Logs) }
+                onViewLogs = { navController.navigate(Screen.Logs.route) }
             )
         }
     }

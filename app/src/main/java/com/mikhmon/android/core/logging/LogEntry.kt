@@ -15,7 +15,8 @@ data class LogEntry(
     val category: String,
     val correlationId: String? = null,
     val message: String,
-    val throwableMessage: String? = null
+    val throwable: Throwable? = null,
+    val throwableMessage: String? = throwable?.message
 ) {
     fun format(): String {
         val correlation = correlationId?.let { "[$it] " } ?: ""
