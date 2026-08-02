@@ -65,6 +65,18 @@ class LoginViewModel @Inject constructor(
         }
     }
     
+    fun updateHost(host: String) {
+        _uiState.update { it.copy(host = host) }
+    }
+    
+    fun updateUsername(username: String) {
+        _uiState.update { it.copy(username = username) }
+    }
+    
+    fun updatePassword(password: String) {
+        _uiState.update { it.copy(password = password) }
+    }
+    
     fun connect() {
         viewModelScope.launch {
             val state = _uiState.value

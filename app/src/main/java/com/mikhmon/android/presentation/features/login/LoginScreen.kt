@@ -31,6 +31,9 @@ fun LoginScreen(
     LoginContent(
         uiState = uiState,
         onRouterSelected = viewModel::selectRouter,
+        onHostChange = viewModel::updateHost,
+        onUsernameChange = viewModel::updateUsername,
+        onPasswordChange = viewModel::updatePassword,
         onConnectClick = viewModel::connect,
         onDismissError = viewModel::dismissError
     )
@@ -41,6 +44,9 @@ fun LoginScreen(
 private fun LoginContent(
     uiState: LoginUiState,
     onRouterSelected: (String) -> Unit,
+    onHostChange: (String) -> Unit,
+    onUsernameChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
     onConnectClick: () -> Unit,
     onDismissError: () -> Unit
 ) {
@@ -113,7 +119,7 @@ private fun LoginContent(
                 // Connection Fields
                 OutlinedTextField(
                     value = uiState.host,
-                    onValueChange = { },
+                    onValueChange = onHostChange,
                     label = { Text("Host / IP") },
                     placeholder = { Text("192.168.88.1") },
                     modifier = Modifier.fillMaxWidth(),
@@ -134,7 +140,7 @@ private fun LoginContent(
                 
                 OutlinedTextField(
                     value = uiState.username,
-                    onValueChange = { },
+                    onValueChange = onUsernameChange,
                     label = { Text("Username") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(
@@ -155,7 +161,7 @@ private fun LoginContent(
                 
                 OutlinedTextField(
                     value = uiState.password,
-                    onValueChange = { },
+                    onValueChange = onPasswordChange,
                     label = { Text("Password") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(
