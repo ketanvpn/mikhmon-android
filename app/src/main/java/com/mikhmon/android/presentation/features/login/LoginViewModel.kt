@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mikhmon.android.core.logging.Logger
 import com.mikhmon.android.data.model.Router
+import com.mikhmon.android.data.model.RouterEndpoint
 import com.mikhmon.android.data.repository.RouterRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -66,15 +67,15 @@ class LoginViewModel @Inject constructor(
     }
     
     fun updateHost(host: String) {
-        _uiState.update { it.copy(host = host) }
+        _uiState.update { it.copy(host = host, selectedRouter = null) }
     }
     
     fun updateUsername(username: String) {
-        _uiState.update { it.copy(username = username) }
+        _uiState.update { it.copy(username = username, selectedRouter = null) }
     }
     
     fun updatePassword(password: String) {
-        _uiState.update { it.copy(password = password) }
+        _uiState.update { it.copy(password = password, selectedRouter = null) }
     }
     
     fun connect() {
@@ -88,6 +89,13 @@ class LoginViewModel @Inject constructor(
             
             if (state.username.isBlank()) {
                 _uiState.update { it.copy(error = "Please enter username") }
+                return@launch
+            }
+
+            val endpoint = try {
+                RouterEndpoint.parse(state.host)
+            } catch (e: IllegalArgumentException) {
+                _uiState.update { it.copy(error = e.message ?: "Enter a valid router address") }
                 return@launch
             }
             
@@ -114,9 +122,11 @@ class LoginViewModel @Inject constructor(
                 // No saved router - need to add it first
                 val addResult = routerRepository.addRouter(
                     name = state.host,
-                    host = state.host,
+                    host = endpoint.host,
+                    port = endpoint.port,
                     username = state.username,
-                    password = state.password
+                    password = state.password,
+                    useSsl = endpoint.useSsl
                 )
                 
                 if (addResult.isSuccess) {

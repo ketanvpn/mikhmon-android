@@ -121,13 +121,12 @@ private fun LoginContent(
                     value = uiState.host,
                     onValueChange = onHostChange,
                     label = { Text("Host / IP") },
-                    placeholder = { Text("192.168.88.1") },
+                    placeholder = { Text("192.168.88.1 or api-ssl://vpn-router") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Uri,
                         imeAction = ImeAction.Next
                     ),
-                    enabled = !uiState.savedRouters.any { it.isDefault },
                     leadingIcon = {
                         Icon(
                             imageVector = androidx.compose.material.icons.Icons.Default.Computer,

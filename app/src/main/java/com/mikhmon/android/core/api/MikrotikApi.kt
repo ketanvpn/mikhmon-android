@@ -2,7 +2,6 @@ package com.mikhmon.android.core.api
 
 import com.mikhmon.android.core.logging.Logger
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -10,10 +9,12 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.InetSocketAddress
 import java.net.Socket
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.security.MessageDigest
-import kotlin.math.min
+import javax.net.ssl.SSLSocketFactory
+import javax.net.ssl.SSLException
 
 /**
  * MikroTik RouterOS API Client
@@ -75,8 +76,7 @@ class MikrotikApi private constructor(
         try {
             _connectionState.value = ConnectionState.Connecting
             
-            // Create socket and connect
-            socket = Socket().apply {
+            socket = createSocket().apply {
                 soTimeout = timeoutMs
                 connect(InetSocketAddress(host, port), timeoutMs)
             }
@@ -97,6 +97,32 @@ class MikrotikApi private constructor(
                 disconnect()
                 Result.failure(loginResult.exceptionOrNull() ?: Exception("Login failed"))
             }
+        } catch (e: SocketTimeoutException) {
+            val error = ConnectionTimeoutException(host, port)
+            _connectionState.value = ConnectionState.Error(error.message ?: "Connection timed out")
+            Logger.error(Logger.Category.API, "Connection timed out", e, correlationId)
+            Result.failure(error)
+        } catch (e: UnknownHostException) {
+            val error = RouterConnectionException("Cannot resolve '$host'. Check the VPN connection or router address.", e)
+            _connectionState.value = ConnectionState.Error(error.message ?: "Router host could not be resolved")
+            Logger.error(Logger.Category.API, "Router host could not be resolved", e, correlationId)
+            Result.failure(error)
+        } catch (e: ConnectException) {
+            val error = RouterConnectionException(
+                "Cannot reach $host:$port. Check the VPN/local network and that the RouterOS API service is enabled.",
+                e
+            )
+            _connectionState.value = ConnectionState.Error(error.message ?: "Router connection refused")
+            Logger.error(Logger.Category.API, "Router connection was refused", e, correlationId)
+            Result.failure(error)
+        } catch (e: SSLException) {
+            val error = RouterConnectionException(
+                "Secure API connection failed. Verify api-ssl://, port $port, and the router TLS certificate.",
+                e
+            )
+            _connectionState.value = ConnectionState.Error(error.message ?: "Secure API connection failed")
+            Logger.error(Logger.Category.API, "Secure API connection failed", e, correlationId)
+            Result.failure(error)
         } catch (e: Exception) {
             _connectionState.value = ConnectionState.Error(e.message ?: "Connection failed")
             Logger.error(Logger.Category.API, "Connection failed: ${e.message}", e, correlationId)
@@ -109,44 +135,26 @@ class MikrotikApi private constructor(
      */
     private suspend fun login(correlationId: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            // Try modern authentication first (RouterOS v6.43+)
             Logger.debug(Logger.Category.API, "Attempting modern authentication", correlationId)
-            
-            writeCommand("/login")
-            val response = readResponse()
-            
-            // Check if we got a challenge (legacy auth)
-            val retResponse = response.find { it.containsKey("ret") }
-            
-            if (retResponse != null) {
-                // Legacy authentication (pre-v6.43)
-                isLegacyAuth = true
-                Logger.debug(Logger.Category.API, "Using legacy authentication", correlationId)
-                
-                val challenge = retResponse["ret"] ?: return@withContext Result.failure(Exception("No challenge received"))
-                val hashedPassword = hashPassword(password, challenge)
-                
-                writeCommand("/login", mapOf(
-                    "name" to username,
-                    "response" to "00${hashedPassword}"
-                ))
-            } else {
-                // Modern authentication (v6.43+)
-                isLegacyAuth = false
-                Logger.debug(Logger.Category.API, "Using modern authentication", correlationId)
-                
-                writeCommand("/login", mapOf(
-                    "name" to username,
-                    "password" to password
-                ))
+            writeCommand("/login", mapOf("name" to username, "password" to password))
+            val modernResponse = readResponse()
+            if (modernResponse.none { it.containsKey("!trap") }) {
+                Logger.info(Logger.Category.AUTH, "Login successful", correlationId)
+                return@withContext Result.success(Unit)
             }
-            
-            val loginResponse = readResponse()
-            val error = loginResponse.find { it.containsKey("!trap") }
-            
+
+            // Legacy RouterOS requires a challenge-response retry after rejecting credentials.
+            isLegacyAuth = true
+            Logger.debug(Logger.Category.API, "Falling back to legacy authentication", correlationId)
+            writeCommand("/login")
+            val challengeResponse = readResponse()
+            val challenge = challengeResponse.firstNotNullOfOrNull { it["ret"] }
+                ?: return@withContext Result.failure(AuthenticationException(loginError(modernResponse)))
+            writeCommand("/login", mapOf("name" to username, "response" to "00${hashPassword(password, challenge)}"))
+            val legacyResponse = readResponse()
+            val error = legacyResponse.firstOrNull { it.containsKey("!trap") }
             if (error != null) {
-                Logger.error(Logger.Category.AUTH, "Login failed: ${error["message"]}", null, correlationId)
-                Result.failure(AuthenticationException(error["message"] ?: "Authentication failed"))
+                Result.failure(AuthenticationException(loginError(legacyResponse)))
             } else {
                 Logger.info(Logger.Category.AUTH, "Login successful", correlationId)
                 Result.success(Unit)
@@ -169,6 +177,14 @@ class MikrotikApi private constructor(
         val hash = md.digest(challengeBytes)
         
         return bytesToHexString(hash)
+    }
+
+    private fun loginError(response: List<Map<String, String>>): String {
+        return response.firstNotNullOfOrNull { it["message"] } ?: "Authentication failed"
+    }
+
+    private fun createSocket(): Socket {
+        return if (useSsl) SSLSocketFactory.getDefault().createSocket() else Socket()
     }
     
     /**
@@ -357,7 +373,7 @@ class MikrotikApi private constructor(
             length < 0xE0 -> ((length and 0x1F) shl 16) or ((input.readByte().toInt() and 0xFF) shl 8) or (input.readByte().toInt() and 0xFF)
             length < 0xF0 -> ((length and 0x0F) shl 24) or ((input.readByte().toInt() and 0xFF) shl 16) or ((input.readByte().toInt() and 0xFF) shl 8) or (input.readByte().toInt() and 0xFF)
             else -> {
-                input.readByte() // Skip first byte
+                input.readByte()
                 ((input.readByte().toInt() and 0xFF) shl 24) or 
                 ((input.readByte().toInt() and 0xFF) shl 16) or 
                 ((input.readByte().toInt() and 0xFF) shl 8) or 
@@ -434,6 +450,10 @@ sealed class ConnectionState {
  * Exceptions
  */
 class AuthenticationException(message: String) : Exception(message)
+class ConnectionTimeoutException(host: String, port: Int) : Exception(
+    "Connection to $host:$port timed out. Check the VPN/local network and RouterOS API port."
+)
+class RouterConnectionException(message: String, cause: Throwable) : Exception(message, cause)
 class NotConnectedException : Exception("Not connected to router")
 class MikrotikApiException(message: String) : Exception(message)
 class IOException(message: String) : Exception(message)
