@@ -29,12 +29,29 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+        create("release") {
+            // Use debug keystore for now (can be replaced with proper release keystore)
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+    
     buildTypes {
         debug {
             isDebuggable = true
             isMinifyEnabled = false
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-DEBUG"
+            signingConfig = signingConfigs.getByName("debug")
             
             buildConfigField("boolean", "DEBUG_MODE", "true")
             buildConfigField("int", "LOG_LEVEL", "0") // VERBOSE = 0
@@ -48,6 +65,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
             
             buildConfigField("boolean", "DEBUG_MODE", "false")
             buildConfigField("int", "LOG_LEVEL", "2") // INFO = 2
