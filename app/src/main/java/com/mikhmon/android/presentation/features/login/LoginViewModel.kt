@@ -22,7 +22,8 @@ data class LoginUiState(
     val password: String = "",
     val isLoading: Boolean = false,
     val isLoggedIn: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val isUserInput: Boolean = false  // Track if user has manually entered data
 )
 
 @HiltViewModel
@@ -41,14 +42,19 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             routerRepository.getAllRouters().collect { routers ->
                 _uiState.update { state ->
-                    val defaultRouter = routers.find { it.isDefault }
-                    state.copy(
-                        savedRouters = routers,
-                        selectedRouter = defaultRouter,
-                        host = defaultRouter?.host ?: "",
-                        username = defaultRouter?.username ?: "",
-                        password = defaultRouter?.password ?: ""
-                    )
+                    // Only update fields if user hasn't manually entered data
+                    if (state.isUserInput) {
+                        state.copy(savedRouters = routers)
+                    } else {
+                        val defaultRouter = routers.find { it.isDefault }
+                        state.copy(
+                            savedRouters = routers,
+                            selectedRouter = defaultRouter,
+                            host = defaultRouter?.host ?: "",
+                            username = defaultRouter?.username ?: "",
+                            password = defaultRouter?.password ?: ""
+                        )
+                    }
                 }
             }
         }
@@ -61,21 +67,22 @@ class LoginViewModel @Inject constructor(
                 selectedRouter = router,
                 host = router?.host ?: "",
                 username = router?.username ?: "",
-                password = router?.password ?: ""
+                password = router?.password ?: "",
+                isUserInput = false
             )
         }
     }
     
     fun updateHost(host: String) {
-        _uiState.update { it.copy(host = host, selectedRouter = null) }
+        _uiState.update { it.copy(host = host, selectedRouter = null, isUserInput = true) }
     }
     
     fun updateUsername(username: String) {
-        _uiState.update { it.copy(username = username, selectedRouter = null) }
+        _uiState.update { it.copy(username = username, selectedRouter = null, isUserInput = true) }
     }
     
     fun updatePassword(password: String) {
-        _uiState.update { it.copy(password = password, selectedRouter = null) }
+        _uiState.update { it.copy(password = password, selectedRouter = null, isUserInput = true) }
     }
     
     fun connect() {

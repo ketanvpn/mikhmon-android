@@ -80,9 +80,11 @@ private fun LoginContent(
                 
                 // Router Selection
                 if (uiState.savedRouters.isNotEmpty()) {
+                    var dropdownExpanded by remember { mutableStateOf(false) }
+                    
                     ExposedDropdownMenuBox(
-                        expanded = false,
-                        onExpandedChange = { }
+                        expanded = dropdownExpanded,
+                        onExpandedChange = { dropdownExpanded = it }
                     ) {
                         OutlinedTextField(
                             value = uiState.selectedRouter?.name ?: "Select Router",
@@ -101,13 +103,16 @@ private fun LoginContent(
                         )
                         
                         ExposedDropdownMenu(
-                            expanded = false,
-                            onDismissRequest = { }
+                            expanded = dropdownExpanded,
+                            onDismissRequest = { dropdownExpanded = false }
                         ) {
                             uiState.savedRouters.forEach { router ->
                                 DropdownMenuItem(
                                     text = { Text(router.name) },
-                                    onClick = { onRouterSelected(router.id) }
+                                    onClick = { 
+                                        onRouterSelected(router.id)
+                                        dropdownExpanded = false
+                                    }
                                 )
                             }
                         }
