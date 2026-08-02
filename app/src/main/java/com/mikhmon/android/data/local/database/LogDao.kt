@@ -11,22 +11,22 @@ import kotlinx.coroutines.flow.Flow
 interface LogDao {
     
     @Query("SELECT * FROM log_entries ORDER BY timestamp DESC LIMIT :limit")
-    fun getRecentLogs(limit: Int = 500): Flow<List<LogEntry>>
+    fun getRecentLogs(limit: Int = 500): Flow<List<LogEntryEntity>>
     
     @Query("SELECT * FROM log_entries WHERE category = :category ORDER BY timestamp DESC")
-    fun getLogsByCategory(category: String): Flow<List<LogEntry>>
+    fun getLogsByCategory(category: String): Flow<List<LogEntryEntity>>
     
     @Query("SELECT * FROM log_entries WHERE correlationId = :correlationId ORDER BY timestamp ASC")
-    suspend fun getLogsByCorrelationId(correlationId: String): List<LogEntry>
+    suspend fun getLogsByCorrelationId(correlationId: String): List<LogEntryEntity>
     
     @Query("SELECT * FROM log_entries WHERE timestamp >= :startTime AND timestamp <= :endTime ORDER BY timestamp DESC")
-    suspend fun getLogsBetween(startTime: Long, endTime: Long): List<LogEntry>
+    suspend fun getLogsBetween(startTime: Long, endTime: Long): List<LogEntryEntity>
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertLog(log: LogEntry): Long
+    suspend fun insertLog(log: LogEntryEntity): Long
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertLogs(logs: List<LogEntry>)
+    suspend fun insertLogs(logs: List<LogEntryEntity>)
     
     @Query("DELETE FROM log_entries WHERE timestamp < :beforeTime")
     suspend fun deleteOldLogs(beforeTime: Long): Int

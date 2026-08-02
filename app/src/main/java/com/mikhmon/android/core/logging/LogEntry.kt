@@ -15,14 +15,13 @@ data class LogEntry(
     val category: String,
     val correlationId: String? = null,
     val message: String,
-    val throwable: Throwable? = null,
-    val metadata: Map<String, String> = emptyMap()
+    val throwableMessage: String? = null
 ) {
     fun format(): String {
         val correlation = correlationId?.let { "[$it] " } ?: ""
         val formattedTimestamp = "${timestamp.year}-${timestamp.monthNumber.toString().padStart(2, '0')}-${timestamp.dayOfMonth.toString().padStart(2, '0')} " +
                 "${timestamp.hour.toString().padStart(2, '0')}:${timestamp.minute.toString().padStart(2, '0')}:${timestamp.second.toString().padStart(2, '0')}.${(timestamp.nanosecond / 1_000_000).toString().padStart(3, '0')}"
         
-        return "[$formattedTimestamp] [${level.name}] [$category] ${correlation}$message${throwable?.let { " | Exception: ${it.message}" } ?: ""}"
+        return "[$formattedTimestamp] [${level.name}] [$category] ${correlation}$message${throwableMessage?.let { " | Exception: $it" } ?: ""}"
     }
 }

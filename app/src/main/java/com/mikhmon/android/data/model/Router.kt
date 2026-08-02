@@ -1,5 +1,7 @@
 package com.mikhmon.android.data.model
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -8,8 +10,10 @@ import kotlinx.serialization.Serializable
  * 
  * Represents a MikroTik router configuration
  */
+@Entity(tableName = "routers")
 @Serializable
 data class Router(
+    @PrimaryKey
     @SerialName("id")
     val id: String,
     

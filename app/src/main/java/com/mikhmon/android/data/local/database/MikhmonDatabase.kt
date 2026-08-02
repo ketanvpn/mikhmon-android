@@ -45,7 +45,7 @@ data class LogEntryEntity(
             category = category,
             correlationId = correlationId,
             message = message,
-            throwable = throwableMessage?.let { Exception(it) }
+            throwableMessage = throwableMessage
         )
     }
     
@@ -53,16 +53,15 @@ data class LogEntryEntity(
         fun fromLogEntry(entry: LogEntry): LogEntryEntity {
             return LogEntryEntity(
                 id = entry.id,
-                timestamp = entry.timestamp.let { 
-                    kotlinx.datetime.Instant.fromEpochSeconds(
-                        it.toEpochMilliseconds()
-                    ).toEpochMilliseconds()
-                },
+                timestamp = kotlinx.datetime.Instant.fromEpochSeconds(
+                    entry.timestamp.year * 31536000L + entry.timestamp.monthNumber * 2592000L + entry.timestamp.dayOfMonth * 86400L +
+                    entry.timestamp.hour * 3600L + entry.timestamp.minute * 60L + entry.timestamp.second
+                ).toEpochMilliseconds(),
                 level = entry.level.name,
                 category = entry.category,
                 correlationId = entry.correlationId,
                 message = entry.message,
-                throwableMessage = entry.throwable?.message
+                throwableMessage = entry.throwableMessage
             )
         }
     }
